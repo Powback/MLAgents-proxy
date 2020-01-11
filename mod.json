@@ -1,0 +1,9 @@
+{
+	"Name": "MLAgents",
+	"Authors": ["Powback"],
+	"Description": "Unity MLAgents interface",
+	"URL": "",
+	"Version": "0",
+	"HasWebUI": false,
+	"HasVeniceEXT": true
+}
