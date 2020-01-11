@@ -15,18 +15,8 @@ namespace MLProxy
 		public string Action(ProxyAcademy academy, IPEndPoint endPoint)
 		{
 			this.endPoint = endPoint;
-			GameObject agent = academy.SpawnAgent(position, Quaternion.Euler(rotation.x, rotation.y, rotation.z));
-			ProxyAgent proxyAgent = agent.GetComponent<ProxyAgent>();
-			if(proxyAgent)
-			{
-				proxyAgent.endpoint = endPoint;
-				academy.RegisterAgent(proxyAgent);
-				return "ok"; // If this is executed we're already connected m'kay
-			} else
-			{
-				Debug.LogError("Agent is missing the ProxyAgent component");
-				return "error";
-			}
+			GameObject agent = academy.SpawnAgent(this.id, position, Quaternion.Euler(rotation.x, rotation.y, rotation.z), endPoint);
+			return "ok"; // If this is executed we're already connected m'kay
 		}
 	}
 }

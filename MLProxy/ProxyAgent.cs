@@ -7,7 +7,7 @@ using MLProxy;
 
 public class ProxyAgent : Agent
 {
-    private int id;
+    public int id;
     public IPEndPoint endpoint;
     private ProxyAcademy academy;
 
@@ -15,10 +15,19 @@ public class ProxyAgent : Agent
     {
         AgentReset();
     }
+    public void SetAcademy(ProxyAcademy academy)
+    {
+        this.academy = academy;
+    }
     public IEnumerator SetTransform(Vector3 pos, Quaternion rot)
     {
         this.gameObject.transform.position = pos;
         this.gameObject.transform.rotation= rot;
+        yield return null;
+    }
+    public IEnumerator SetEnabled(bool value)
+    {
+        this.transform.gameObject.SetActive(value);
         yield return null;
     }
     public override void CollectObservations()

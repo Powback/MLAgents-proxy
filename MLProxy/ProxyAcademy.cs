@@ -21,6 +21,7 @@ public class ProxyAcademy : Academy
     private List<ProxyAgent> agents = new List<ProxyAgent>();
     private List<GameObject> spawnedGameObjects = new List<GameObject>();
     private bool pauseReceive;
+    private bool hasConnection;
 
     private void Start()
     {
@@ -38,10 +39,16 @@ public class ProxyAcademy : Academy
         for(int i = 0; i < 10; i++)
         {
             GameObject agent = Instantiate(this.agentPrefab);
+            agent.GetComponent<ProxyAgent>().id = i;
             this.agents.Add(agent.GetComponent<ProxyAgent>());
             agent.gameObject.SetActive(false);
             this.agentPool.Add(agent);
         }
+    }
+    private void OnApplicationQuit()
+    {
+        this.client.Dispose();
+        this.client = null;
     }
     private void ReceiveData()
     {
@@ -77,6 +84,7 @@ public class ProxyAcademy : Academy
             {
                 case "connect":
                     academyResponse = JsonUtility.FromJson<ConnectCommand>(responseRaw).Action(this);
+                    hasConnection = true;
                     break;
                 case "academyReset":
                     academyResponse = "ok";
@@ -109,11 +117,17 @@ public class ProxyAcademy : Academy
     {
         if (this.client == null)
         {
-            this.client = new UdpClient(port);
+            Debug.LogError("Not connected");
+            return false;
         }
         if(this.agents[agentId] == null)
         {
             Debug.LogError("Attempted to send data to an agent that doesn't exist.");
+            return false;
+        }
+        if(this.agents[agentId].endpoint == null)
+        {
+            Debug.LogError("No endpoint");
             return false;
         }
         var dataString = JsonUtility.ToJson(data, false);
@@ -121,10 +135,12 @@ public class ProxyAcademy : Academy
         {
             this.pauseReceive = true;
         }
-        var result = this.client.Send(Encoding.UTF8.GetBytes(dataString), dataString.Length, this.agents[agentId].endpoint);
+
+        var request = Encoding.UTF8.GetBytes(dataString.Length.ToString());
+        var result = this.client.Send(request, request.Length, this.agents[agentId].endpoint);
         if(result != 0)
         {
-            Debug.LogError("Failed to send data");
+            Debug.LogError("Failed to send data. Error " + result);
             return false;
         }
         if(waitForResponse)
@@ -145,7 +161,7 @@ public class ProxyAcademy : Academy
 
     public override void AcademyReset()
     {
-        if(this.agents.Count >= 1)
+        if(hasConnection && this.spawnedGameObjects.Count >= 1 && this.client != null)
         {
             SendData(0, new ResetSceneCommand());
         }
@@ -160,13 +176,15 @@ public class ProxyAcademy : Academy
         this.agents.Add(agent);
 	}
 
-    public GameObject SpawnAgent(Vector3 pos, Quaternion rot)
+    public GameObject SpawnAgent(int id, Vector3 pos, Quaternion rot, IPEndPoint endpoint)
     {
         var agent = this.agents[this.spawnedGameObjects.Count];
         var gameObject = this.agentPool[this.spawnedGameObjects.Count];
 
         UnityMainThreadDispatcher.Instance().Enqueue(agent.SetTransform(pos, rot));
-        gameObject.SetActive(true);
+        agent.endpoint = endpoint;
+        agent.SetAcademy(this);
+        UnityMainThreadDispatcher.Instance().Enqueue(agent.SetEnabled(true));
         this.spawnedGameObjects.Add(gameObject);
         return gameObject;
     }
